@@ -39,12 +39,13 @@ int main(int argc, char *argv[]) {
 
     printf("Tarefas carregadas (%d):\n", task_count);
     for (int i = 0; i < task_count; i++) {
-        printf("  ID: %d | Cor: #%s | Ingresso: %d | Duracao: %d | Prioridade: %d\n",
+        printf("  ID: %d | Cor: #%s | Ingresso: %d | Duracao: %d | Prioridade: %d\n | Lista de Eventos: %s\n",
                tasks[i].id,
                tasks[i].color,
                tasks[i].arrival_time,
                tasks[i].duration,
-               tasks[i].priority);
+               tasks[i].priority,
+               tasks[i].events);
     }
     printf("\n");
 

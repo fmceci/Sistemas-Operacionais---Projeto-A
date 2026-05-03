@@ -18,7 +18,7 @@ static void str_to_upper(char *s) {
  *
  * Formato esperado:
  *   Linha 1: algoritmo_escalonamento;quantum;qtde_cpus
- *   Linha 2+: id;cor;ingresso;duracao;prioridade
+ *   Linha 2+: id;cor;ingresso;duracao;prioridade;lista de eventos
  *
  * Parâmetros:
  *   filename   - caminho do arquivo de configuração
@@ -92,6 +92,15 @@ int load_config(const char *filename, Config *config, Task tasks[], int *task_co
 
         token = strtok(NULL, ";");
         t->priority = (token != NULL) ? atoi(token) : 0;
+
+        /* Lista de eventos: no Projeto A apenas armazenamos */
+        token = strtok(NULL, ";");
+		if (token != NULL) {
+    		strncpy(t->events, token, MAX_EVENTS_STR - 1);
+    		t->events[MAX_EVENTS_STR - 1] = '\0';
+		} else {
+    		strcpy(t->events, "-");
+		}
 
         /* Estado inicial e CPU */
         t->state      = NEW;

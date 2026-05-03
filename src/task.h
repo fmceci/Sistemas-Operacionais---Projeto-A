@@ -3,6 +3,8 @@
 
 /* Número máximo de tarefas suportadas pelo simulador */
 #define MAX_TASKS 64
+/*Número máximo de eventos suportados pelo sumulador*/
+#define MAX_EVENTS_STR 256
 
 /*
  * TaskState - representa os estados possíveis de uma tarefa no sistema.
@@ -28,6 +30,10 @@ typedef struct {
     int duration;       /* Duração total de execução da tarefa */
     int remaining_time; /* Tempo restante de execução (usado pelo SRTF) */
     int priority;       /* Prioridade estática da tarefa (usado pelo PRIOP) */
+    char events[MAX_EVENTS_STR]; /* Lista de eventos lida do arquivo.
+                                 * No Projeto A, é apenas armazenada.
+                                 * Ex: "IO:3-2,ML01:5,MU01:7" ou "-"
+                                 */
 
     TaskState state;    /* Estado atual da tarefa */
     int cpu_id;         /* ID da CPU em que está executando (-1 = nenhuma) */
