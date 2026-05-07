@@ -330,7 +330,7 @@ void gantt_save_svg(const GanttHistory *history, Task tasks[],
                 /* PRONTA (na fila): ausência de cor (cinza claro) - req 2.1 */
                 fprintf(f,
                     "  <rect x='%d' y='%d' width='%d' height='%d' "
-                    "fill='#2a2a4a' rx='2' stroke='#444466' stroke-width='0.5'/>\n",
+                    "fill='none' rx='2' stroke='#444466' stroke-width='0.5'/>\n",
                     x + 1, cy, cw, ch
                 );
             } else if (ts == NEW) {
@@ -413,7 +413,7 @@ void gantt_save_svg(const GanttHistory *history, Task tasks[],
 
     /* Pronta */
     fprintf(f,
-        "  <rect x='10' y='%d' width='22' height='14' fill='#2a2a4a' "
+        "  <rect x='10' y='%d' width='22' height='14' fill='none' "
         "rx='2' stroke='#444466' stroke-width='1'/>\n"
         "  <text x='38' y='%d' fill='#cccccc'>Pronta (na fila de prontos)</text>\n",
         ly, ly + 11

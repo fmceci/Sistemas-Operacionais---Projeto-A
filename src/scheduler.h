@@ -12,6 +12,7 @@ typedef struct {
     int id;       /* Identificador da CPU (0 a cpu_count-1) */
     int task_id;  /* ID da tarefa em execução (-1 = CPU ociosa/desligada) */
     int active;   /* 1 = CPU ligada, 0 = CPU desligada (sem tarefa pronta) */
+    int idle_time; // tempo acumulado desligada
 } CPU;
 
 /*

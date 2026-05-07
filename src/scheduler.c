@@ -12,6 +12,7 @@ void init_cpus(CPU cpus[], int cpu_count) {
         cpus[i].id      = i;
         cpus[i].task_id = -1;
         cpus[i].active  = 0;
+        cpus[i].idle_time = 0;
     }
 }
 
@@ -57,8 +58,7 @@ static int tiebreak(Task tasks[], int idx_a, int idx_b,
  *
  * Retorna o índice da tarefa escolhida, ou -1 se não houver tarefa READY.
  */
-static int schedule_srtf(Task tasks[], int task_count,
-                         int current_task, int *lottery_used) {
+static int schedule_srtf(Task tasks[], int task_count, int current_task, int *lottery_used) {
     int best = -1;
 
     for (int i = 0; i < task_count; i++) {

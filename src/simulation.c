@@ -118,17 +118,25 @@ int simulation_step(SimulationState *sim) {
     assign_tasks(sim->config.algorithm, sim->tasks, sim->task_count,
                  sim->cpus, sim->config.cpu_count, sim->clock);
 
+
     /* Imprime estado das CPUs */
     for (int c = 0; c < sim->config.cpu_count; c++) {
         if (sim->cpus[c].active) {
             printf("  CPU %d -> Tarefa %d\n", c, sim->cpus[c].task_id);
         } else {
-            printf("  CPU %d -> desligada\n", c);
+            printf("  CPU %d -> desligada (%d ticks ociosa)\n",
+       		c, sim->cpus[c].idle_time);
         }
     }
 
     /* Passo 3: executa 1 tick */
     execute_tick(sim);
+
+    for (int c = 0; c < sim->config.cpu_count; c++) {
+    	if (!sim->cpus[c].active) {
+        	sim->cpus[c].idle_time++;
+    	}
+	}
 
     /* Passo 4: registra histórico (lottery_used vem do scheduler via stdout por ora) */
     gantt_record(&sim->history, sim->clock, sim->cpus, sim->config.cpu_count,
@@ -154,6 +162,11 @@ void simulation_run_complete(SimulationState *sim) {
     while (simulation_step(sim)) { /* executa até acabar */ }
 
     printf("\n=== Simulacao concluida no tick %d ===\n", sim->clock);
+    printf("\n=== Tempo ocioso por CPU ===\n");
+	for (int c = 0; c < sim->config.cpu_count; c++) {
+    	printf("CPU %d ficou desligada por %d ticks\n",
+        	   c, sim->cpus[c].idle_time);
+	}
 
     /* Gera o gráfico de Gantt como imagem SVG (req 2.4) */
     gantt_save_svg(&sim->history, sim->tasks, sim->task_count, "gantt.svg");
@@ -309,7 +322,8 @@ void simulation_run_step_by_step(SimulationState *sim) {
                 if (sim->cpus[c].active)
                     printf("  CPU %d -> Tarefa %d\n", c, sim->cpus[c].task_id);
                 else
-                    printf("  CPU %d -> desligada\n", c);
+                    printf("  CPU %d -> desligada (%d ticks ociosa)\n",
+       					c, sim->cpus[c].idle_time);
             }
 
         } else if (cmd[0] == 'q') {
