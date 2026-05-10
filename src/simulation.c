@@ -6,7 +6,55 @@
 /* -----------------------------------------------------------------------
  * Inicialização
  * ----------------------------------------------------------------------- */
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "simulation.h"
 
+/* -----------------------------------------------------------------------
+ * Funções auxiliares de entrada
+ * ----------------------------------------------------------------------- */
+
+/*
+ * limpar_buffer - remove caracteres restantes do buffer de entrada.
+ *
+ * Necessário após uso de scanf(), pois ele deixa o '\n' pendente,
+ * o que pode causar leituras incorretas com fgets().
+ */
+void limpar_buffer(void) {
+    int ch;
+
+    while ((ch = getchar()) != '\n' && ch != EOF);
+}
+
+/*
+ * ler_inteiro_com_padrao - lê um inteiro informado pelo usuário.
+ *
+ * Se o usuário apenas pressionar ENTER, mantém o valor padrão.
+ *
+ * Parâmetros:
+ *   mensagem      - texto exibido ao usuário
+ *   valor_padrao  - valor utilizado caso nenhuma entrada seja fornecida
+ *
+ * Retorno:
+ *   Valor digitado pelo usuário ou o valor padrão.
+ */
+int ler_inteiro_com_padrao(const char *mensagem, int valor_padrao) {
+    char buffer[32];
+
+    printf(mensagem, valor_padrao);
+    printf(": ");
+
+    if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        return valor_padrao;
+    }
+
+    if (buffer[0] == '\n') {
+        return valor_padrao;
+    }
+
+    return atoi(buffer);
+}
 /*
  * simulation_init - copia as tarefas e configurações para o estado da simulação,
  * inicializa CPUs e o histórico do Gantt.
@@ -141,6 +189,9 @@ int simulation_step(SimulationState *sim) {
     /* Passo 4: registra histórico (lottery_used vem do scheduler via stdout por ora) */
     gantt_record(&sim->history, sim->clock, sim->cpus, sim->config.cpu_count,
                  sim->tasks, sim->task_count, 0);
+	/* Passo 4.1: mostra o Gantt atualizado no terminal */
+	gantt_print_tick(&sim->history, sim->clock,
+                 sim->tasks, sim->task_count);
 
     /* Passo 5: avança relógio */
     sim->clock++;
@@ -186,7 +237,7 @@ static void restore_snapshot(SimulationState *sim, int snapshot_index) {
     if (snapshot_index < 0 || snapshot_index >= sim->history.count) return;
 
     const GanttEntry *e = &sim->history.entries[snapshot_index];
-    sim->clock = e->tick;
+    sim->clock = e->tick + 1;
 
     /* Restaura estados e remaining_time das tarefas */
     for (int i = 0; i < sim->task_count; i++) {
@@ -239,6 +290,7 @@ static void prompt_modify_task(SimulationState *sim) {
     }
 }
 
+
 /*
  * simulation_run_step_by_step - modo interativo com avançar, retroceder
  * e modificação de estados. Implementa os requisitos 1.5.1 e 1.5.2.
@@ -252,7 +304,7 @@ static void prompt_modify_task(SimulationState *sim) {
  */
 void simulation_run_step_by_step(SimulationState *sim) {
     printf("=== Modo passo-a-passo ===\n");
-    printf("Comandos: [n]ext | [b]ack | [m]odify | [i]nspect | [q]uit\n\n");
+
 
     int snapshot_pos = -1; /* posição atual no histórico ao retroceder */
     int running = 1;
@@ -266,20 +318,25 @@ void simulation_run_step_by_step(SimulationState *sim) {
 
         printf("\nTick atual: %d | Historico: %d entradas\n",
                sim->clock, sim->history.count);
-        printf("Comando: ");
+        printf("Comandos disponiveis: [n]ext | [b]ack | [m]odify | [i]nspect | [q]uit\n\n");
+        printf("Digite o comando desejado: ");
 
         char cmd[8];
         if (scanf("%7s", cmd) != 1) break;
 
         if (cmd[0] == 'n' || cmd[0] == '\n') {
-            /* Avança */
-            snapshot_pos = -1;
-            if (!simulation_step(sim)) {
-                printf("Simulacao concluida.\n");
-                running = 0;
-            }
+    	/* Se estava em um ponto anterior do histórico,
+       	descarta tudo que vinha depois dele */
+    		if (snapshot_pos >= 0) {
+        		sim->history.count = snapshot_pos + 1;
+        		snapshot_pos = -1;
+    		}
 
-        } else if (cmd[0] == 'b') {
+    		if (!simulation_step(sim)) {
+        		printf("Simulacao concluida.\n");
+        		running = 0;
+    		}
+		} else if (cmd[0] == 'b') {
             /* Retrocede - usa o histórico armazenado */
             int target = (snapshot_pos < 0)
                          ? sim->history.count - 2  /* volta do live para último */

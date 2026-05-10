@@ -10,7 +10,7 @@
 #define SVG_ROW_H       36   /* Altura de cada linha (tarefa) */
 #define SVG_LABEL_W    110   /* Largura da coluna de labels à esquerda */
 #define SVG_MARGIN_TOP  60   /* Margem superior (para título e eixo de tempo) */
-#define SVG_LEGEND_H   120   /* Altura da área de legenda abaixo do gráfico */
+#define SVG_LEGEND_H   250   /* Altura da área de legenda abaixo do gráfico */
 #define SVG_GAP          4   /* Espaço entre células do Gantt */
 
 /* -----------------------------------------------------------------------
@@ -64,8 +64,7 @@ void gantt_record(GanttHistory *history, int tick,
         e->task_remaining[i] = tasks[i].remaining_time;
 
         /* Detecta chegada: tarefa passou de NEW para READY neste tick */
-        e->task_arrived[i]  = (tasks[i].state == READY &&
-                               tasks[i].arrival_time == tick) ? 1 : 0;
+        e->task_arrived[i] = (tasks[i].arrival_time == tick) ? 1 : 0;
 
         /* Detecta fim: tarefa terminou exatamente agora */
         e->task_finished[i] = (tasks[i].state == FINISHED &&
@@ -327,7 +326,7 @@ void gantt_save_svg(const GanttHistory *history, Task tasks[],
                     x + cw / 2, cy + ch / 2 + 4, on_cpu
                 );
             } else if (ts == READY) {
-                /* PRONTA (na fila): ausência de cor (cinza claro) - req 2.1 */
+                /* PRONTA (na fila): ausência de cor - req 2.1 */
                 fprintf(f,
                     "  <rect x='%d' y='%d' width='%d' height='%d' "
                     "fill='none' rx='2' stroke='#444466' stroke-width='0.5'/>\n",
@@ -454,8 +453,8 @@ void gantt_save_svg(const GanttHistory *history, Task tasks[],
 
     /* CPU desligada */
     fprintf(f,
-        "  <text x='14' y='%d' fill='#ff4444' font-size='9'>C0&#x25BC;</text>\n"
-        "  <text x='38' y='%d' fill='#cccccc'>CPU desligada (sem tarefa pronta)</text>\n",
+    "  <text x='14' y='%d' fill='#ff4444' font-size='9'>C#&#x25BC;</text>\n"
+    "  <text x='38' y='%d' fill='#cccccc'>CPU desligada (C0, C1, ...)</text>\n",
         ly + 11, ly + 11
     );
 

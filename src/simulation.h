@@ -19,6 +19,17 @@ typedef struct {
     GanttHistory history;         /* Histórico para o Gantt e para retroceder */
 } SimulationState;
 
+
+/*
+ * limpar_buffer - limpa caracteres pendentes da entrada padrão.
+ */
+void limpar_buffer(void);
+
+/*
+ * ler_inteiro_com_padrao - lê inteiro ou mantém valor padrão.
+ */
+int ler_inteiro_com_padrao(const char *mensagem,
+                           int valor_padrao);
 /*
  * simulation_init - inicializa o estado da simulação a partir da configuração.
  */

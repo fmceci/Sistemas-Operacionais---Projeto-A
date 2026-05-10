@@ -38,40 +38,49 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Falha ao carregar configuracao. Encerrando.\n");
         return 1;
     }
-    int alg_opcao;
 
+
+    printf("\n=== Configuracoes da simulacao ===\n");
+
+    printf("Algoritmo padrao: %s\n", config.algorithm);
     printf("Selecione o algoritmo de escalonamento:\n");
     printf("  1 - SRTF\n");
     printf("  2 - PRIOP\n");
-    printf("Opcao: ");
+    printf("Opcao [ENTER para manter %s]: ", config.algorithm);
 
-    if (scanf("%d", &alg_opcao) != 1) {
-        alg_opcao = 1;
+    char buffer[32];
+    fgets(buffer, sizeof(buffer), stdin);
+
+    if (buffer[0] != '\n') {
+        int alg_opcao = atoi(buffer);
+
+        switch (alg_opcao) {
+            case 1:
+                strcpy(config.algorithm, "SRTF");
+            break;
+            case 2:
+                strcpy(config.algorithm, "PRIOP");
+            break;
+            default:
+                printf("Opcao invalida. Mantendo algoritmo padrao: %s\n", config.algorithm);
+            break;
+        }
     }
 
-    switch (alg_opcao) {
-        case 1:
-            strcpy(config.algorithm, "SRTF");
-        break;
-        case 2:
-            strcpy(config.algorithm, "PRIOP");
-        break;
-        default:
-            strcpy(config.algorithm, "SRTF");
-        break;
-    }
+    config.quantum = ler_inteiro_com_padrao(
+        "Digite o quantum desejado ou ENTER para manter %d",
+        config.quantum
+    );
 
-    printf("\nAlgoritmo selecionado: %s\n\n", config.algorithm);
+    config.cpu_count = ler_inteiro_com_padrao(
+        "Digite a quantidade de CPUs desejada ou ENTER para manter %d",
+        config.cpu_count
+    );
 
-
-
-    /* Exibe resumo da configuração carregada */
-    printf("=== Simulador de SO Multitarefa ===\n\n");
-
-    printf("Configuracao:\n");
-    printf("  Algoritmo : %s\n", config.algorithm);  // Algoritmo de escalonamento
-    printf("  Quantum   : %d\n", config.quantum);    // Tempo de quantum (Round Robin)
-    printf("  CPUs      : %d\n\n", config.cpu_count);// Número de CPUs
+    printf("\nConfiguracoes finais:\n");
+    printf("  Algoritmo : %s\n", config.algorithm);
+    printf("  Quantum   : %d\n", config.quantum);
+    printf("  CPUs      : %d\n\n", config.cpu_count);
 
     /* Exibe todas as tarefas carregadas */
     printf("Tarefas carregadas (%d):\n", task_count);
