@@ -1,45 +1,49 @@
 #ifndef TASK_H
 #define TASK_H
 
-/* Número máximo de tarefas suportadas pelo simulador */
+/* Número máximo de tarefas suportadas na simulação */
 #define MAX_TASKS 64
-/*Número máximo de eventos suportados pelo sumulador*/
+
+/* Tamanho máximo da string de eventos de uma tarefa */
 #define MAX_EVENTS_STR 256
 
 /*
- * TaskState - representa os estados possíveis de uma tarefa no sistema.
- * Segue o ciclo de vida clássico de um processo em SO.
+ * TaskState - estados possíveis de uma tarefa no sistema operacional.
+ *
+ * NEW      : Tarefa criada, aguardando o instante de ingresso.
+ * READY    : Tarefa pronta para executar, aguardando CPU.
+ * RUNNING  : Tarefa em execução em alguma CPU.
+ * SUSPENDED: Tarefa suspensa (por E/S, mutex, etc.) - Projeto B.
+ * FINISHED : Tarefa finalizou sua execução.
  */
 typedef enum {
-    NEW,        /* Tarefa ainda não chegou ao sistema */
-    READY,      /* Tarefa pronta para executar, aguardando CPU */
-    RUNNING,    /* Tarefa atualmente em execução em alguma CPU */
-    FINISHED    /* Tarefa concluiu sua execução */
+    NEW = 0,
+    READY,
+    RUNNING,
+    SUSPENDED,
+    FINISHED
 } TaskState;
 
 /*
  * Task - Task Control Block (TCB).
- * Armazena todas as informações de uma tarefa durante todo o ciclo de vida,
- * conforme requisito 1.3 do enunciado.
+ *
+ * Armazena todas as informações de uma tarefa antes, durante e
+ * após a simulação (requisito 1.3 do enunciado).
  */
 typedef struct {
-    int id;             /* Identificador único da tarefa */
-    char color[8];      /* Cor RGB hexadecimal (ex: "FF0000"), 6 chars + '\0' */
+    int        id;                      /* Identificador único da tarefa */
+    char       color[8];                /* Cor no formato RRGGBB hex, ex: "FF0000" */
+    int        arrival_time;            /* Instante de ingresso da tarefa */
+    int        duration;                /* Duração total (tempo de execução) */
+    int        remaining_time;          /* Tempo restante para terminar */
+    int        priority;                /* Prioridade estática (maior = mais prioritário) */
+    char       events[MAX_EVENTS_STR];  /* Lista de eventos (Projeto B) */
 
-    int arrival_time;   /* Instante em que a tarefa chega ao sistema (ingresso) */
-    int duration;       /* Duração total de execução da tarefa */
-    int remaining_time; /* Tempo restante de execução (usado pelo SRTF) */
-    int priority;       /* Prioridade estática da tarefa (usado pelo PRIOP) */
-    char events[MAX_EVENTS_STR]; /* Lista de eventos lida do arquivo.
-                                 * No Projeto A, é apenas armazenada.
-                                 * Ex: "IO:3-2,ML01:5,MU01:7" ou "-"
-                                 */
-
-    TaskState state;    /* Estado atual da tarefa */
-    int cpu_id;         /* ID da CPU em que está executando (-1 = nenhuma) */
-
-    int start_time;     /* Instante em que começou a executar pela primeira vez */
-    int finish_time;    /* Instante em que terminou a execução */
+    TaskState  state;                   /* Estado atual da tarefa */
+    int        cpu_id;                  /* ID da CPU onde está executando (-1 = nenhuma) */
+    int        start_time;              /* Tick em que começou a executar pela 1ª vez */
+    int        finish_time;             /* Tick em que terminou */
+    int        ticks_this_slice;        /* Ticks executados no slice atual (para quantum) */
 } Task;
 
 #endif /* TASK_H */
