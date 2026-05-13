@@ -24,6 +24,7 @@ typedef struct {
     int lottery_tick;                /* 1 se houve desempate por sorteio neste tick */
     int task_arrived[MAX_TASKS];     /* 1 se a tarefa chegou (NEW→READY) neste tick */
     int task_finished[MAX_TASKS];    /* 1 se a tarefa terminou exatamente neste tick */
+    int task_slice[MAX_TASKS];
 } GanttEntry;
 
 /*

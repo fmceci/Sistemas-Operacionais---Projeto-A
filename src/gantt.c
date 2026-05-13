@@ -118,7 +118,7 @@ void gantt_record(GanttHistory *history, int tick,
     for (int i = 0; i < task_count && i < MAX_TASKS; i++) {
         e->task_state[i]     = tasks[i].state;
         e->task_remaining[i] = tasks[i].remaining_time;
-
+		e->task_slice[i] = tasks[i].ticks_this_slice;
         /* Chegada: tarefa tornou-se READY neste tick (arrival_time == tick) */
         e->task_arrived[i]  = (tasks[i].arrival_time == tick &&
                                 tasks[i].state != NEW) ? 1 : 0;

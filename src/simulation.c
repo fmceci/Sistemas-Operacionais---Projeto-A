@@ -143,7 +143,11 @@ static int execute_tick(SimulationState *sim) {
  */
 static int has_pending_tasks(SimulationState *sim) {
     for (int i = 0; i < sim->task_count; i++) {
-        if (sim->tasks[i].state != FINISHED) return 1;
+        if (sim->tasks[i].state != FINISHED &&
+            sim->tasks[i].state != SUSPENDED &&
+            sim->tasks[i].remaining_time > 0) {
+            return 1;
+        }
     }
     return 0;
 }
@@ -197,12 +201,10 @@ int simulation_step(SimulationState *sim) {
     if (lottery) {
         printf("  [SORTEIO]    Desempate aleatorio ocorreu neste tick.\n");
     }
-
+	/* Passo 3: processa 1 tick em cada CPU ativa */
+    execute_tick(sim);
     /* Exibe estado das CPUs após escalonamento */
     print_cpu_status(sim);
-
-    /* Passo 3: processa 1 tick em cada CPU ativa */
-    execute_tick(sim);
 
     /* Passo 4: registra snapshot no histórico do Gantt */
     gantt_record(&sim->history, sim->clock,
@@ -239,7 +241,7 @@ void simulation_run_complete(SimulationState *sim) {
     /* Exibe tempo ocioso de cada CPU (req 1.2) */
     printf("Tempo ocioso por CPU:\n");
     for (int c = 0; c < sim->config.cpu_count; c++) {
-        printf("  CPU %d: %d tick(s) desligada\n", c, sim->cpus[c].idle_time);
+        printf("  CPU %d: %d tick(s) ociosa\n", c, sim->cpus[c].idle_time);
     }
 
     /* Exibe resumo das tarefas */
@@ -275,19 +277,47 @@ static void restore_snapshot(SimulationState *sim, int snapshot_index) {
 
     const GanttEntry *e = &sim->history.entries[snapshot_index];
 
-    /* Retrocede o relógio para o tick deste snapshot */
     sim->clock = e->tick;
 
-    /* Restaura estado e tempo restante de cada tarefa */
     for (int i = 0; i < sim->task_count; i++) {
         sim->tasks[i].state          = e->task_state[i];
         sim->tasks[i].remaining_time = e->task_remaining[i];
+        sim->tasks[i].ticks_this_slice = e->task_slice[i];
     }
 
-    /* Restaura estado de cada CPU */
     for (int c = 0; c < sim->config.cpu_count; c++) {
         sim->cpus[c].task_id = e->cpu_task[c];
         sim->cpus[c].active  = e->cpu_active[c];
+    }
+
+    for (int i = 0; i < sim->task_count; i++) {
+        sim->tasks[i].cpu_id = -1;
+
+        if (sim->tasks[i].state != RUNNING) {
+            sim->tasks[i].ticks_this_slice = 0;
+        }
+    }
+
+    for (int c = 0; c < sim->config.cpu_count; c++) {
+        int task_id = sim->cpus[c].task_id;
+
+        if (sim->cpus[c].active && task_id != -1) {
+            for (int i = 0; i < sim->task_count; i++) {
+                if (sim->tasks[i].id == task_id) {
+                    sim->tasks[i].cpu_id = c;
+                    break;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < sim->task_count; i++) {
+        if (sim->tasks[i].state == RUNNING &&
+            sim->tasks[i].cpu_id == -1) {
+
+            sim->tasks[i].state = READY;
+            sim->tasks[i].ticks_this_slice = 0;
+        }
     }
 }
 
@@ -326,20 +356,56 @@ static void prompt_modify_task(SimulationState *sim) {
     if (scanf("%d", &new_state) != 1) { limpar_buffer(); return; }
     limpar_buffer();
 
-    if (new_state >= 0 && new_state <= 4) {
-        sim->tasks[idx].state = (TaskState)new_state;
-        printf("Estado de T%d alterado para %s.\n", id, estados[new_state]);
-    }
+    /* Se finalizou manualmente, limpa dados de execução */
+	if (new_state >= 0 && new_state <= 4) {
 
-    /* Pede novo tempo restante */
-    printf("Novo tempo restante (atual=%d, -1=manter): ",
-           sim->tasks[idx].remaining_time);
-    int new_rem;
-    if (scanf("%d", &new_rem) == 1 && new_rem >= 0) {
-        sim->tasks[idx].remaining_time = new_rem;
-        printf("Tempo restante de T%d alterado para %d.\n", id, new_rem);
-    }
-    limpar_buffer();
+    	sim->tasks[idx].state = (TaskState)new_state;
+
+    	if (new_state == FINISHED) {
+        	sim->tasks[idx].remaining_time = 0;
+        	sim->tasks[idx].cpu_id = -1;
+        	sim->tasks[idx].ticks_this_slice = 0;
+
+        	if (sim->tasks[idx].finish_time == -1) {
+            	sim->tasks[idx].finish_time = sim->clock;
+        	}
+    	}
+
+    	printf("Estado de T%d alterado para %s.\n",id, estados[new_state]);
+
+    /*
+     * RUNNING sem CPU é inválido.
+     * Se o usuário marcar RUNNING manualmente,
+     * mas a tarefa não estiver atribuída a CPU,
+     * ela volta para READY.
+     */
+    	if (sim->tasks[idx].state == RUNNING &&
+        	sim->tasks[idx].cpu_id == -1) {
+        	sim->tasks[idx].state = READY;
+        	sim->tasks[idx].ticks_this_slice = 0;
+
+       		printf("T%d foi ajustada para READY porque nao estava em nenhuma CPU.\n", id);
+    	}
+        if (sim->tasks[idx].state == READY ||sim->tasks[idx].state == NEW ||sim->tasks[idx].state == SUSPENDED) {
+    		sim->tasks[idx].cpu_id = -1;
+    		sim->tasks[idx].ticks_this_slice = 0;
+		}
+	}
+
+
+
+	/* SOMENTE tarefas nao finalizadas podem alterar remaining_time */
+	if (sim->tasks[idx].state != FINISHED) {
+    	printf("Novo tempo restante (atual=%d, -1=manter): ",
+        	   sim->tasks[idx].remaining_time);
+    	int new_rem;
+    		if (scanf("%d", &new_rem) == 1 && new_rem >= 0) {
+        		sim->tasks[idx].remaining_time = new_rem;
+        		printf("Tempo restante de T%d alterado para %d.\n",id, new_rem);
+    		}
+
+   		limpar_buffer();
+	}
 }
 
 /*
@@ -397,7 +463,8 @@ void simulation_run_step_by_step(SimulationState *sim) {
     while (running) {
         printf("\nTick atual: %d | Historico: %d entradas\n",
                sim->clock, sim->history.count);
-        printf("Comando: ");
+        printf("Comandos disponíveis: [n]ext | [b]ack | [m]odify | [i]nspect | [q]uit\n");
+        printf("Digite o comando desejado:");
 
         char cmd[8];
         if (scanf("%7s", cmd) != 1) break;
@@ -448,14 +515,26 @@ void simulation_run_step_by_step(SimulationState *sim) {
 
             if (target < 0) {
                 printf("Nao ha historico para retroceder.\n");
+
             } else {
-                snapshot_pos = target;
-                restore_snapshot(sim, snapshot_pos);
-                printf("Retrocedeu para tick %d.\n",
-                       sim->history.entries[snapshot_pos].tick);
-                /* Exibe o Gantt deste ponto histórico (req 2.3) */
-                gantt_print_terminal(&sim->history, sim->tasks, sim->task_count);
-            }
+    			snapshot_pos = target;
+    			restore_snapshot(sim, snapshot_pos);
+
+    			printf("Retrocedeu para tick %d.\n",
+           		sim->history.entries[snapshot_pos].tick);
+
+    			/*
+     			* Mostra o Gantt somente até o ponto restaurado.
+     			* Sem isso, ele continua imprimindo snapshots futuros.
+     			*/
+    			int old_count = sim->history.count;
+
+    			sim->history.count = snapshot_pos + 1;
+
+    			gantt_print_terminal(&sim->history,sim->tasks,sim->task_count);
+
+    			sim->history.count = old_count;
+			}
 
         } else if (cmd[0] == 'm') {
             /* Modifica estado de uma tarefa (req 3.4) */

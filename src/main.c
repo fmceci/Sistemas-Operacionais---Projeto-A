@@ -3,7 +3,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
-
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "task.h"
 #include "config.h"
 #include "simulation.h"
@@ -27,6 +29,10 @@
  */
 int main(int argc, char *argv[]) {
 
+    #ifdef _WIN32
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleCP(CP_UTF8);
+    #endif
     /* Inicializa o gerador aleatório com o tempo atual, garantindo
      * resultados diferentes a cada execução (necessário para sorteios). */
     srand((unsigned int)time(NULL));
